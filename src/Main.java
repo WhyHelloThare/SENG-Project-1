@@ -1,99 +1,45 @@
+import org.eclipse.jdt.core.dom.ASTParser;
+import org.eclipse.jdt.core.dom.CompilationUnit;
+
 import java.io.BufferedReader;
-import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.*;
- 
-import org.eclipse.jdt.core.dom.AST;
-import org.eclipse.jdt.core.dom.ASTParser;
-import org.eclipse.jdt.core.dom.ASTVisitor;
-import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.jdt.core.dom.SimpleName;
-import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
- 
+
+import org.eclipse.jdt.core.*;
+import org.eclipse.jdt.core.dom.*;
+
 public class Main {
- 
-	//use ASTParse to parse string
-	public static void parse(String str) {
+	public static void main(String[] args) throws FileNotFoundException, IOException {
+		String filePath = "testFile.java";		// input file path	
 		ASTParser parser = ASTParser.newParser(AST.JLS8);
-		parser.setSource(str.toCharArray());
+		
+		char[] fileContent = getFileContent(filePath).toCharArray();
+		parser.setSource(fileContent);		
 		parser.setKind(ASTParser.K_COMPILATION_UNIT);
- 
-		final CompilationUnit cu = (CompilationUnit) parser.createAST(null);
- 
-		cu.accept(new ASTVisitor() {
- 
-			Set names = new HashSet();
- 
+		CompilationUnit cu = (CompilationUnit)parser.createAST(null);
+		cu.accept(new ASTVisitor(){
 			public boolean visit(VariableDeclarationFragment node) {
 				SimpleName name = node.getName();
-				this.names.add(name.getIdentifier());
-				System.out.println("Declaration of '" + name + "' at line"
-						+ cu.getLineNumber(name.getStartPosition()));
-				return false; // do not continue 
-			}
- 
-			public boolean visit(SimpleName node) {
-				if (this.names.contains(node.getIdentifier())) {
-					//System.out.println("Usage of '" + node + "' at line "
-					//		+ cu.getLineNumber(node.getStartPosition()));
-				}
-				return true;
+				int lineNumber = cu.getLineNumber(name.getStartPosition());
+				
+				System.out.println("Name: " + name.toString());
+				System.out.println("Line: " + lineNumber);
+				System.out.println("------------------------------------------");
+				return false;
 			}
 		});
- 
 	}
- 
-	//read file content into a string
-	public static String readFileToString(String filePath) throws IOException {
-		StringBuilder fileData = new StringBuilder(1000);
-		BufferedReader reader = new BufferedReader(new FileReader(filePath));
- 
-		char[] buf = new char[10];
-		int numRead = 0;
-		while ((numRead = reader.read(buf)) != -1) {
-			System.out.print("Enter a directory: ");
-			Scanner scanner = new Scanner(System.in);
-			String directory = scanner.nextLine();
-			
-			System.out.print("Enter a Java type: ");
-			Scanner scanner2 = new Scanner(System.in);
-			String type = scanner2.nextLine();
-			
-			System.out.println("<" + type + ">. Declarations found: <" + numRead + ">" + "; references found: <" + numRead + ">.");
-			
-			//System.out.println(numRead);
-			String readData = String.valueOf(buf, 0, numRead);
-			fileData.append(readData);
-			buf = new char[1024];
+	
+	public static String getFileContent(String filePath) throws FileNotFoundException, IOException{
+		BufferedReader br = new BufferedReader(new FileReader(filePath));
+		StringBuilder sb = new StringBuilder();
+		String line = br.readLine();
+		while (line != null) {
+			sb.append(line);
+			sb.append(System.lineSeparator());
+			line = br.readLine();
 		}
- 
-		reader.close();
- 
-		return  fileData.toString();	
-	}
- 
-	//loop directory to get file list
-	public static void ParseFilesInDir() throws IOException{
-		File dirs = new File(".");
-		String dirPath = dirs.getCanonicalPath() + File.separator+"src"+File.separator;
- 
-		File root = new File(dirPath);
-		//System.out.println(root.listFiles());
-		File[] files = root.listFiles ( );
-		String filePath = null;
- 
-		 for (File f : files ) {
-			 filePath = f.getAbsolutePath();
-			 if(f.isFile()){
-				 parse(readFileToString(filePath));
-			 }
-		 }
-	}
- 
-	public static void main(String[] args) throws IOException {
-		ParseFilesInDir();
+		return sb.toString();
 	}
 }
